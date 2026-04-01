@@ -75,25 +75,32 @@ class GoogleApiHelper(private val context: Context, private val credential: Goog
         val subject = "[$source] New message from $sender"
         
         val htmlContent = """
-            <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 600px; margin: 20px auto; border: 1px solid #e0e0e0; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); overflow: hidden;">
-                <div style="background-color: #1a73e8; color: white; padding: 20px; text-align: center;">
-                    <h2 style="margin: 0; font-size: 22px; letter-spacing: 0.5px;">New Message Sync</h2>
+            <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 600px; margin: 20px auto; border: 1px solid #e0e0e0; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); overflow: hidden; background-color: #ffffff;">
+                <div style="background-color: #1a73e8; color: white; padding: 24px; text-align: center;">
+                    <h2 style="margin: 0; font-size: 24px; letter-spacing: 0.5px; font-weight: 600;">New Message Sync</h2>
                 </div>
-                <div style="padding: 24px; background-color: #ffffff;">
-                    <div style="margin-bottom: 20px;">
-                        <span style="display: inline-block; padding: 4px 12px; background-color: #e8f0fe; color: #1a73e8; border-radius: 16px; font-size: 13px; font-weight: 600; text-transform: uppercase;">$source</span>
+                <div style="padding: 32px;">
+                    <div style="margin-bottom: 24px;">
+                        <span style="display: inline-block; padding: 6px 16px; background-color: #e8f0fe; color: #1a73e8; border-radius: 20px; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px;">$source</span>
                     </div>
-                    <div style="display: flex; flex-direction: column; gap: 8px;">
-                        <p style="margin: 0; color: #5f6368; font-size: 14px;"><strong>From:</strong> <span style="color: #202124;">$sender</span></p>
-                        <p style="margin: 0; color: #5f6368; font-size: 14px;"><strong>Time:</strong> <span style="color: #202124;">$timestamp</span></p>
+                    
+                    <div style="margin-bottom: 24px;">
+                        <div style="margin-bottom: 8px;">
+                            <span style="color: #5f6368; font-size: 13px; font-weight: 600;">FROM</span><br>
+                            <span style="color: #202124; font-size: 16px;">$sender</span>
+                        </div>
+                        <div>
+                            <span style="color: #5f6368; font-size: 13px; font-weight: 600;">RECEIVED AT</span><br>
+                            <span style="color: #202124; font-size: 16px;">$timestamp</span>
+                        </div>
                     </div>
-                    <hr style="border: 0; border-top: 1px solid #f1f3f4; margin: 24px 0;">
-                    <div style="padding: 20px; background-color: #f8f9fa; border-radius: 8px; border-left: 4px solid #1a73e8;">
-                        <p style="margin: 0; color: #202124; font-size: 16px; line-height: 1.6; white-space: pre-wrap;">$body</p>
+
+                    <div style="padding: 24px; background-color: #f8f9fa; border-radius: 10px; border-left: 5px solid #1a73e8;">
+                        <p style="margin: 0; color: #202124; font-size: 17px; line-height: 1.6; white-space: pre-wrap;">$body</p>
                     </div>
                 </div>
-                <div style="background-color: #f1f3f4; padding: 12px; text-align: center; color: #70757a; font-size: 12px;">
-                    This notification was automatically forwarded from your phone.
+                <div style="background-color: #f8f9fa; padding: 16px; text-align: center; color: #70757a; font-size: 12px; border-top: 1px solid #f1f3f4;">
+                    Automated Secure Forwarding &bull; Sync SMS
                 </div>
             </div>
         """.trimIndent()

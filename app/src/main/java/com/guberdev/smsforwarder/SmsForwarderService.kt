@@ -123,18 +123,40 @@ class SmsForwarderService : Service() {
         return START_STICKY
     }
 
+    // Content-only dedup: hash(message) -> timestamp (10s window)
+    private val contentCache = mutableMapOf<Int, Long>()
+    // Sender-specific dedup: sender|hash(message) -> timestamp (60s window)
+    private val senderCache = mutableMapOf<String, Long>()
+
     private fun isDuplicate(sender: String, message: String): Boolean {
-        val key = "$sender|${message.take(80).hashCode()}"
+        val normalizedMsg = message.trim()
+        val msgHash = normalizedMsg.take(100).hashCode()
         val now = System.currentTimeMillis()
-        val last = recentMessages[key]
-        return if (last != null && now - last < 30_000) {
-            Log.d("SmsForwarder", "Dedup: skipping duplicate from $sender")
-            true
-        } else {
-            recentMessages[key] = now
-            recentMessages.entries.removeIf { now - it.value > 60_000 }
-            false
+
+        // 1. Content-only check (10s): Catches same message from different sources (Receiver vs Listener vs Observer)
+        val lastContent = contentCache[msgHash]
+        if (lastContent != null && now - lastContent < 10_000) {
+            Log.d("SmsForwarder", "Dedup (Global): skipping duplicate message text within 10s")
+            return true
         }
+
+        // 2. Sender+Content check (60s): Catches retry/repeat messages from the same sender
+        val senderKey = "$sender|$msgHash"
+        val lastSender = senderCache[senderKey]
+        if (lastSender != null && now - lastSender < 60_000) {
+            Log.d("SmsForwarder", "Dedup (Sender): skipping duplicate from $sender within 60s")
+            return true
+        }
+
+        // Update caches
+        contentCache[msgHash] = now
+        senderCache[senderKey] = now
+
+        // Cleanup stale entries
+        contentCache.entries.removeIf { now - it.value > 120_000 }
+        senderCache.entries.removeIf { now - it.value > 120_000 }
+        
+        return false
     }
 
     private fun getDefaultSmsAppName(): String {
