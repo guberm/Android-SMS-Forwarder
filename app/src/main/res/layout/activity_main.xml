@@ -3,81 +3,80 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    android:padding="20dp"
-    android:gravity="center_horizontal">
+    android:padding="24dp"
+    android:gravity="center_horizontal"
+    android:background="#F5F5F5">
 
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="SMS sync"
-        android:textSize="32sp"
+        android:text="SMS Sync"
+        android:textSize="28sp"
         android:textStyle="bold"
-        android:textColor="@android:color/black"
-        android:layout_marginTop="20dp"
-        android:layout_marginBottom="10dp"/>
+        android:textColor="#212121"
+        android:layout_marginTop="24dp"
+        android:layout_marginBottom="4dp"/>
 
     <TextView
+        android:id="@+id/tvAccount"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Real-time SMS forwarding to Google Sheets and Gmail"
-        android:textSize="14sp"
-        android:textColor="@android:color/darker_gray"
-        android:layout_marginBottom="40dp"/>
+        android:text="Not signed in"
+        android:textSize="13sp"
+        android:textColor="#757575"
+        android:layout_marginBottom="32dp"/>
+
+    <!-- Status card -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:background="#FFFFFF"
+        android:padding="16dp"
+        android:gravity="center_vertical"
+        android:layout_marginBottom="20dp">
+
+        <View
+            android:id="@+id/statusDot"
+            android:layout_width="12dp"
+            android:layout_height="12dp"
+            android:background="@drawable/status_dot"
+            android:layout_marginEnd="12dp"/>
+
+        <TextView
+            android:id="@+id/tvStatus"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="Initializing..."
+            android:textSize="15sp"
+            android:textColor="#212121"/>
+    </LinearLayout>
 
     <Button
         android:id="@+id/btnSignIn"
         android:layout_width="match_parent"
-        android:layout_height="60dp"
+        android:layout_height="52dp"
         android:text="Sign in with Google"
         android:textAllCaps="false"
-        android:layout_marginBottom="20dp"/>
+        android:layout_marginBottom="12dp"/>
 
     <Button
         android:id="@+id/btnBattery"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="Request Unrestricted Battery"
+        android:layout_height="52dp"
+        android:text="Disable Battery Restrictions"
         android:textAllCaps="false"
-        android:layout_marginBottom="20dp"/>
-
-    <TextView
-        android:id="@+id/tvStatus"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Status: Waiting for sign-in"
-        android:textStyle="italic"
-        android:layout_marginBottom="20dp"/>
+        android:backgroundTint="#FF9800"
+        android:layout_marginBottom="12dp"/>
 
     <Button
         android:id="@+id/btnToggleService"
         android:layout_width="match_parent"
-        android:layout_height="60dp"
+        android:layout_height="52dp"
         android:text="Start Monitoring"
         android:textAllCaps="false"
         android:enabled="false"
         android:backgroundTint="#4CAF50"/>
-
-    <View
-        android:layout_width="match_parent"
-        android:layout_height="1dp"
-        android:background="@android:color/darker_gray"
-        android:layout_marginTop="40dp"
-        android:layout_marginBottom="20dp"/>
-
-    <TextView
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Requirements Checklist:"
-        android:textStyle="bold"
-        android:layout_gravity="start"
-        android:layout_marginBottom="10dp"/>
-
-    <TextView
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_gravity="start"
-        android:text="1. Allow SMS Permissions\n2. Allow Notification Permissions\n3. Set Battery Usage to 'Unrestricted'"
-        android:textColor="@android:color/darker_gray"
-        android:lineSpacingExtra="4dp"/>
 
 </LinearLayout>

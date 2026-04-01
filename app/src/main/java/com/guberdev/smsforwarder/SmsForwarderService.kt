@@ -3,8 +3,13 @@ package com.guberdev.smsforwarder
 import android.app.*
 import android.content.Context
 import android.content.Intent
+import android.database.ContentObserver
+import android.net.Uri
 import android.os.Build
+import android.os.Handler
 import android.os.IBinder
+import android.os.Looper
+import android.provider.Telephony
 import android.util.Log
 import androidx.core.app.NotificationCompat
 import com.google.android.gms.auth.api.signin.GoogleSignIn
@@ -23,10 +28,69 @@ class SmsForwarderService : Service() {
     private val CHANNEL_ID = "SmsForwarderChannel"
     private val scope = CoroutineScope(Dispatchers.IO)
     private var googleApiHelper: GoogleApiHelper? = null
+    private var smsObserver: ContentObserver? = null
+    private var lastKnownSmsId: Long = -1L
 
     override fun onCreate() {
         super.onCreate()
         createNotificationChannel()
+        registerSmsObserver()
+    }
+
+    private fun registerSmsObserver() {
+        // Read current max SMS ID so we only process new ones
+        lastKnownSmsId = getLatestSmsId()
+        Log.d("SmsForwarder", "Starting observer, last SMS id=$lastKnownSmsId")
+
+        smsObserver = object : ContentObserver(Handler(Looper.getMainLooper())) {
+            override fun onChange(selfChange: Boolean, uri: Uri?) {
+                scope.launch { checkForNewSms() }
+            }
+        }
+        contentResolver.registerContentObserver(
+            Telephony.Sms.Inbox.CONTENT_URI,
+            true,
+            smsObserver!!
+        )
+    }
+
+    private fun getLatestSmsId(): Long {
+        val cursor = contentResolver.query(
+            Telephony.Sms.Inbox.CONTENT_URI,
+            arrayOf(Telephony.Sms._ID),
+            null, null,
+            "${Telephony.Sms.DATE} DESC LIMIT 1"
+        ) ?: return -1L
+        return cursor.use {
+            if (it.moveToFirst()) it.getLong(0) else -1L
+        }
+    }
+
+    private fun checkForNewSms() {
+        val cursor = contentResolver.query(
+            Telephony.Sms.Inbox.CONTENT_URI,
+            arrayOf(Telephony.Sms._ID, Telephony.Sms.ADDRESS, Telephony.Sms.BODY, Telephony.Sms.DATE),
+            "${Telephony.Sms._ID} > ?",
+            arrayOf(lastKnownSmsId.toString()),
+            "${Telephony.Sms.DATE} ASC"
+        ) ?: return
+
+        cursor.use {
+            while (it.moveToNext()) {
+                val id = it.getLong(0)
+                val sender = it.getString(1) ?: "Unknown"
+                val body = it.getString(2) ?: ""
+                val timestamp = it.getLong(3)
+                Log.d("SmsForwarder", "Observer: new SMS id=$id from=$sender")
+                lastKnownSmsId = maxOf(lastKnownSmsId, id)
+                processSms(sender, body, timestamp)
+            }
+        }
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        smsObserver?.let { contentResolver.unregisterContentObserver(it) }
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {

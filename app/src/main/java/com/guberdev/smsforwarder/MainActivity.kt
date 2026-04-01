@@ -1,15 +1,18 @@
 package com.guberdev.smsforwarder
 
 import android.Manifest
+import android.app.ActivityManager
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.graphics.drawable.GradientDrawable
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.os.PowerManager
 import android.provider.Settings
 import android.util.Log
+import android.view.View
 import android.widget.Button
 import android.widget.TextView
 import android.widget.Toast
@@ -29,6 +32,8 @@ class MainActivity : AppCompatActivity() {
     private lateinit var btnToggle: Button
     private lateinit var btnSignIn: Button
     private lateinit var tvStatus: TextView
+    private lateinit var tvAccount: TextView
+    private lateinit var statusDot: View
     private lateinit var googleSignInClient: GoogleSignInClient
     private val RC_SIGN_IN = 9001
     private val PERMISSION_REQUEST_CODE = 123
@@ -38,6 +43,8 @@ class MainActivity : AppCompatActivity() {
         setContentView(R.layout.activity_main)
 
         tvStatus = findViewById(R.id.tvStatus)
+        tvAccount = findViewById(R.id.tvAccount)
+        statusDot = findViewById(R.id.statusDot)
         btnSignIn = findViewById(R.id.btnSignIn)
         btnToggle = findViewById(R.id.btnToggleService)
         val btnBattery = findViewById<Button>(R.id.btnBattery)
@@ -45,8 +52,7 @@ class MainActivity : AppCompatActivity() {
         setupGoogleSignIn()
 
         btnSignIn.setOnClickListener {
-            val signInIntent = googleSignInClient.signInIntent
-            startActivityForResult(signInIntent, RC_SIGN_IN)
+            startActivityForResult(googleSignInClient.signInIntent, RC_SIGN_IN)
         }
 
         btnToggle.setOnClickListener {
@@ -61,6 +67,12 @@ class MainActivity : AppCompatActivity() {
             requestIgnoreBatteryOptimization()
         }
 
+        updateUI()
+        autoStartIfReady()
+    }
+
+    override fun onResume() {
+        super.onResume()
         updateUI()
     }
 
@@ -77,8 +89,9 @@ class MainActivity : AppCompatActivity() {
         if (requestCode == RC_SIGN_IN) {
             val task = GoogleSignIn.getSignedInAccountFromIntent(data)
             if (task.isSuccessful) {
-                Toast.makeText(this, "Successfully signed in", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this, "Signed in", Toast.LENGTH_SHORT).show()
                 updateUI()
+                autoStartIfReady()
             } else {
                 Log.e("MainActivity", "Sign in failed: ${task.exception?.message}")
                 Toast.makeText(this, "Sign in failed", Toast.LENGTH_SHORT).show()
@@ -86,48 +99,90 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun updateUI() {
-        val account = GoogleSignIn.getLastSignedInAccount(this)
-        if (account != null) {
-            btnSignIn.text = "Logged in as ${account.email}"
-            btnSignIn.isEnabled = false
-            btnToggle.isEnabled = true
-            tvStatus.text = "Status: Ready to sync"
-        } else {
-            btnSignIn.text = "Sign in with Google"
-            btnSignIn.isEnabled = true
-            btnToggle.isEnabled = false
-            tvStatus.text = "Status: Please sign in first"
+    override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>, grantResults: IntArray) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        if (requestCode == PERMISSION_REQUEST_CODE) {
+            if (grantResults.all { it == PackageManager.PERMISSION_GRANTED }) {
+                autoStartIfReady()
+            }
         }
+    }
+
+    private fun autoStartIfReady() {
+        val account = GoogleSignIn.getLastSignedInAccount(this)
+        if (account != null && checkPermissions() && !isServiceRunning()) {
+            startService()
+        }
+    }
+
+    private fun startService() {
+        val intent = Intent(this, SmsForwarderService::class.java)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            startForegroundService(intent)
+        } else {
+            startService(intent)
+        }
+        updateUI()
     }
 
     private fun toggleService() {
-        val intent = Intent(this, SmsForwarderService::class.java)
         if (isServiceRunning()) {
-            stopService(intent)
-            tvStatus.text = "Status: Monitoring disabled"
-            btnToggle.text = "Start Monitoring"
+            stopService(Intent(this, SmsForwarderService::class.java))
         } else {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                startForegroundService(intent)
-            } else {
-                startService(intent)
-            }
-            tvStatus.text = "Status: Monitoring active"
+            startService()
+        }
+        updateUI()
+    }
+
+    private fun updateUI() {
+        val account = GoogleSignIn.getLastSignedInAccount(this)
+        val running = isServiceRunning()
+
+        if (account != null) {
+            tvAccount.text = account.email
+            btnSignIn.text = "Switch account"
+            btnToggle.isEnabled = checkPermissions()
+        } else {
+            tvAccount.text = "Not signed in"
+            btnSignIn.text = "Sign in with Google"
+            btnToggle.isEnabled = false
+        }
+
+        if (running) {
+            tvStatus.text = "Monitoring active"
             btnToggle.text = "Stop Monitoring"
+            btnToggle.backgroundTintList = android.content.res.ColorStateList.valueOf(0xFFF44336.toInt())
+            setDotColor(0xFF4CAF50.toInt())
+        } else if (account != null) {
+            tvStatus.text = if (checkPermissions()) "Ready — tap Start" else "Missing permissions"
+            btnToggle.text = "Start Monitoring"
+            btnToggle.backgroundTintList = android.content.res.ColorStateList.valueOf(0xFF4CAF50.toInt())
+            setDotColor(0xFFFF9800.toInt())
+        } else {
+            tvStatus.text = "Sign in to get started"
+            setDotColor(0xFF9E9E9E.toInt())
         }
     }
 
+    private fun setDotColor(color: Int) {
+        val drawable = statusDot.background?.mutate() as? GradientDrawable
+        drawable?.setColor(color)
+    }
+
+    @Suppress("DEPRECATION")
     private fun isServiceRunning(): Boolean {
-        return btnToggle.text == "Stop Monitoring"
+        val manager = getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager
+        return manager.getRunningServices(Int.MAX_VALUE)
+            .any { it.service.className == SmsForwarderService::class.java.name }
     }
 
     private fun checkPermissions(): Boolean {
         val sms = ContextCompat.checkSelfPermission(this, Manifest.permission.RECEIVE_SMS) == PackageManager.PERMISSION_GRANTED
+        val readSms = ContextCompat.checkSelfPermission(this, Manifest.permission.READ_SMS) == PackageManager.PERMISSION_GRANTED
         val notification = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED
         } else true
-        return sms && notification
+        return sms && readSms && notification
     }
 
     private fun requestPermissions() {
@@ -139,16 +194,14 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun requestIgnoreBatteryOptimization() {
-        val intent = Intent()
-        val packageName = packageName
         val pm = getSystemService(POWER_SERVICE) as PowerManager
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
             if (!pm.isIgnoringBatteryOptimizations(packageName)) {
-                intent.action = Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS
-                intent.data = Uri.parse("package:$packageName")
-                startActivity(intent)
+                startActivity(Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS).apply {
+                    data = Uri.parse("package:$packageName")
+                })
             } else {
-                Toast.makeText(this, "Success: App is unrestricted", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this, "Already unrestricted", Toast.LENGTH_SHORT).show()
             }
         }
     }
