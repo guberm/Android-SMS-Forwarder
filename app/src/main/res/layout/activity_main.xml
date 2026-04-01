@@ -80,6 +80,15 @@
         android:layout_marginBottom="12dp"/>
 
     <Button
+        android:id="@+id/btnContactsAccess"
+        android:layout_width="match_parent"
+        android:layout_height="52dp"
+        android:text="Grant Contacts Access"
+        android:textAllCaps="false"
+        android:backgroundTint="#FF9800"
+        android:layout_marginBottom="12dp"/>
+
+    <Button
         android:id="@+id/btnToggleService"
         android:layout_width="match_parent"
         android:layout_height="52dp"

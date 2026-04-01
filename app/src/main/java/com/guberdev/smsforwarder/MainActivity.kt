@@ -33,6 +33,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var btnToggle: Button
     private lateinit var btnSignIn: Button
     private lateinit var btnNotificationAccess: Button
+    private lateinit var btnContactsAccess: Button
     private lateinit var tvStatus: TextView
     private lateinit var tvAccount: TextView
     private lateinit var statusDot: View
@@ -50,6 +51,7 @@ class MainActivity : AppCompatActivity() {
         btnSignIn = findViewById(R.id.btnSignIn)
         btnToggle = findViewById(R.id.btnToggleService)
         btnNotificationAccess = findViewById(R.id.btnNotificationAccess)
+        btnContactsAccess = findViewById(R.id.btnContactsAccess)
         val btnBattery = findViewById<Button>(R.id.btnBattery)
 
         setupGoogleSignIn()
@@ -72,6 +74,10 @@ class MainActivity : AppCompatActivity() {
 
         btnNotificationAccess.setOnClickListener {
             startActivity(Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS))
+        }
+
+        btnContactsAccess.setOnClickListener {
+            ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.READ_CONTACTS), PERMISSION_REQUEST_CODE)
         }
 
         updateUI()
@@ -170,6 +176,15 @@ class MainActivity : AppCompatActivity() {
             btnNotificationAccess.backgroundTintList = android.content.res.ColorStateList.valueOf(0xFFFF9800.toInt())
         }
 
+        val hasContacts = ContextCompat.checkSelfPermission(this, Manifest.permission.READ_CONTACTS) == PackageManager.PERMISSION_GRANTED
+        if (hasContacts) {
+            btnContactsAccess.visibility = View.GONE
+        } else {
+            btnContactsAccess.visibility = View.VISIBLE
+            btnContactsAccess.text = "Grant Contacts Access"
+            btnContactsAccess.backgroundTintList = android.content.res.ColorStateList.valueOf(0xFFFF9800.toInt())
+        }
+
         if (running) {
             tvStatus.text = if (notifAccess) "Monitoring active" else "Monitoring active (OTPs: grant notif access)"
             btnToggle.text = "Stop Monitoring"
@@ -201,14 +216,15 @@ class MainActivity : AppCompatActivity() {
     private fun checkPermissions(): Boolean {
         val sms = ContextCompat.checkSelfPermission(this, Manifest.permission.RECEIVE_SMS) == PackageManager.PERMISSION_GRANTED
         val readSms = ContextCompat.checkSelfPermission(this, Manifest.permission.READ_SMS) == PackageManager.PERMISSION_GRANTED
+        val contacts = ContextCompat.checkSelfPermission(this, Manifest.permission.READ_CONTACTS) == PackageManager.PERMISSION_GRANTED
         val notification = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED
         } else true
-        return sms && readSms && notification
+        return sms && readSms && contacts && notification
     }
 
     private fun requestPermissions() {
-        val permissions = mutableListOf(Manifest.permission.RECEIVE_SMS, Manifest.permission.READ_SMS)
+        val permissions = mutableListOf(Manifest.permission.RECEIVE_SMS, Manifest.permission.READ_SMS, Manifest.permission.READ_CONTACTS)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             permissions.add(Manifest.permission.POST_NOTIFICATIONS)
         }

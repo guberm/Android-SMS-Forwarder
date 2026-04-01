@@ -29,6 +29,7 @@ class SmsReceiver : BroadcastReceiver() {
                             putExtra("sender", sender)
                             putExtra("message", body)
                             putExtra("timestamp", timestamp)
+                            putExtra("source", "SMS")
                         }
                         context.startForegroundService(serviceIntent)
                     }
