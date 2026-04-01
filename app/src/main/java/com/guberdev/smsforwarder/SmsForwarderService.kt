@@ -26,10 +26,14 @@ import java.util.*
 class SmsForwarderService : Service() {
 
     private val CHANNEL_ID = "SmsForwarderChannel"
+    private val TARGET_SHEET_ID = "1jNUK8K4Qo3NAdO3fpy_dyYICW5vMWIx2sk0ODijA7Pc"
     private val scope = CoroutineScope(Dispatchers.IO)
     private var googleApiHelper: GoogleApiHelper? = null
     private var smsObserver: ContentObserver? = null
     private var lastKnownSmsId: Long = -1L
+
+    // Dedup cache: key = "sender|bodyHash", value = timestamp
+    private val recentMessages = mutableMapOf<String, Long>()
 
     override fun onCreate() {
         super.onCreate()
@@ -38,7 +42,6 @@ class SmsForwarderService : Service() {
     }
 
     private fun registerSmsObserver() {
-        // Read current max SMS ID so we only process new ones
         lastKnownSmsId = getLatestSmsId()
         Log.d("SmsForwarder", "Starting observer, last SMS id=$lastKnownSmsId")
 
@@ -81,8 +84,15 @@ class SmsForwarderService : Service() {
                 val sender = it.getString(1) ?: "Unknown"
                 val body = it.getString(2) ?: ""
                 val timestamp = it.getLong(3)
-                Log.d("SmsForwarder", "Observer: new SMS id=$id from=$sender")
                 lastKnownSmsId = maxOf(lastKnownSmsId, id)
+
+                if (body.isBlank()) {
+                    // OTP_REDACTION stripped the body — notification listener will catch it
+                    Log.d("SmsForwarder", "Skipping blank body (OTP redacted) id=$id from=$sender")
+                    continue
+                }
+
+                Log.d("SmsForwarder", "Observer: new SMS id=$id from=$sender")
                 processSms(sender, body, timestamp)
             }
         }
@@ -101,14 +111,31 @@ class SmsForwarderService : Service() {
             val sender = intent.getStringExtra("sender") ?: "Unknown"
             val message = intent.getStringExtra("message") ?: ""
             val timestamp = intent.getLongExtra("timestamp", System.currentTimeMillis())
-            
-            processSms(sender, message, timestamp)
+            if (message.isNotBlank()) {
+                processSms(sender, message, timestamp)
+            }
         }
 
         return START_STICKY
     }
 
+    private fun isDuplicate(sender: String, message: String): Boolean {
+        val key = "$sender|${message.take(80).hashCode()}"
+        val now = System.currentTimeMillis()
+        val last = recentMessages[key]
+        return if (last != null && now - last < 30_000) {
+            Log.d("SmsForwarder", "Dedup: skipping duplicate from $sender")
+            true
+        } else {
+            recentMessages[key] = now
+            recentMessages.entries.removeIf { now - it.value > 60_000 }
+            false
+        }
+    }
+
     private fun processSms(sender: String, message: String, timestamp: Long) {
+        if (isDuplicate(sender, message)) return
+
         scope.launch {
             try {
                 if (googleApiHelper == null) {
@@ -116,21 +143,12 @@ class SmsForwarderService : Service() {
                 }
 
                 val helper = googleApiHelper ?: return@launch
-                val prefs = getSharedPreferences("SmsForwarderPrefs", Context.MODE_PRIVATE)
-                
-                // Always use the fixed sheet ID shared with service account
-                val targetSheetId = "1jNUK8K4Qo3NAdO3fpy_dyYICW5vMWIx2sk0ODijA7Pc"
-                prefs.edit().putString("spreadsheet_id", targetSheetId).apply()
-                var spreadsheetId: String? = targetSheetId
-
-                if (spreadsheetId != null) {
-                    val dateStr = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.ENGLISH).format(Date(timestamp))
-                    helper.appendRow(spreadsheetId, dateStr, sender, message)
-                    helper.sendEmailToSelf(sender, dateStr, message)
-                    Log.d("SmsForwarder", "Successfully synced SMS from $sender")
-                }
+                val dateStr = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.ENGLISH).format(Date(timestamp))
+                helper.appendRow(TARGET_SHEET_ID, dateStr, sender, message)
+                helper.sendEmailToSelf(sender, dateStr, message)
+                Log.d("SmsForwarder", "Synced SMS from $sender")
             } catch (e: Exception) {
-                Log.e("SmsForwarder", "Failed to sync SMS: ${e.message}")
+                Log.e("SmsForwarder", "Failed to sync SMS from $sender: ${e.message}")
             }
         }
     }
@@ -144,7 +162,6 @@ class SmsForwarderService : Service() {
         )
         val credential = GoogleAccountCredential.usingOAuth2(this, scopes)
         credential.selectedAccount = account.account
-        
         googleApiHelper = GoogleApiHelper(this, credential)
     }
 

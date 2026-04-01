@@ -62,10 +62,10 @@
         android:layout_marginBottom="12dp"/>
 
     <Button
-        android:id="@+id/btnDefaultSms"
+        android:id="@+id/btnNotificationAccess"
         android:layout_width="match_parent"
         android:layout_height="52dp"
-        android:text="Set as Default SMS App"
+        android:text="Grant Notification Access (for OTPs)"
         android:textAllCaps="false"
         android:backgroundTint="#FF9800"
         android:layout_marginBottom="12dp"/>
