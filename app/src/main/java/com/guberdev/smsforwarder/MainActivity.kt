@@ -2,6 +2,7 @@ package com.guberdev.smsforwarder
 
 import android.Manifest
 import android.app.ActivityManager
+import android.app.role.RoleManager
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
@@ -11,6 +12,7 @@ import android.os.Build
 import android.os.Bundle
 import android.os.PowerManager
 import android.provider.Settings
+import android.provider.Telephony
 import android.util.Log
 import android.view.View
 import android.widget.Button
@@ -31,11 +33,13 @@ class MainActivity : AppCompatActivity() {
 
     private lateinit var btnToggle: Button
     private lateinit var btnSignIn: Button
+    private lateinit var btnDefaultSms: Button
     private lateinit var tvStatus: TextView
     private lateinit var tvAccount: TextView
     private lateinit var statusDot: View
     private lateinit var googleSignInClient: GoogleSignInClient
     private val RC_SIGN_IN = 9001
+    private val RC_DEFAULT_SMS = 9002
     private val PERMISSION_REQUEST_CODE = 123
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -47,6 +51,7 @@ class MainActivity : AppCompatActivity() {
         statusDot = findViewById(R.id.statusDot)
         btnSignIn = findViewById(R.id.btnSignIn)
         btnToggle = findViewById(R.id.btnToggleService)
+        btnDefaultSms = findViewById(R.id.btnDefaultSms)
         val btnBattery = findViewById<Button>(R.id.btnBattery)
 
         setupGoogleSignIn()
@@ -65,6 +70,10 @@ class MainActivity : AppCompatActivity() {
 
         btnBattery.setOnClickListener {
             requestIgnoreBatteryOptimization()
+        }
+
+        btnDefaultSms.setOnClickListener {
+            requestDefaultSmsApp()
         }
 
         updateUI()
@@ -134,9 +143,36 @@ class MainActivity : AppCompatActivity() {
         updateUI()
     }
 
+    private fun isDefaultSmsApp(): Boolean {
+        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            val roleManager = getSystemService(RoleManager::class.java)
+            roleManager.isRoleHeld(RoleManager.ROLE_SMS)
+        } else {
+            Telephony.Sms.getDefaultSmsPackage(this) == packageName
+        }
+    }
+
+    private fun requestDefaultSmsApp() {
+        if (isDefaultSmsApp()) {
+            Toast.makeText(this, "Already the default SMS app", Toast.LENGTH_SHORT).show()
+            return
+        }
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            val roleManager = getSystemService(RoleManager::class.java)
+            val intent = roleManager.createRequestRoleIntent(RoleManager.ROLE_SMS)
+            startActivityForResult(intent, RC_DEFAULT_SMS)
+        } else {
+            val intent = Intent(Telephony.Sms.Intents.ACTION_CHANGE_DEFAULT).apply {
+                putExtra(Telephony.Sms.Intents.EXTRA_PACKAGE_NAME, packageName)
+            }
+            startActivity(intent)
+        }
+    }
+
     private fun updateUI() {
         val account = GoogleSignIn.getLastSignedInAccount(this)
         val running = isServiceRunning()
+        val isDefault = isDefaultSmsApp()
 
         if (account != null) {
             tvAccount.text = account.email
@@ -148,8 +184,16 @@ class MainActivity : AppCompatActivity() {
             btnToggle.isEnabled = false
         }
 
+        if (isDefault) {
+            btnDefaultSms.text = "Default SMS App: ON"
+            btnDefaultSms.backgroundTintList = android.content.res.ColorStateList.valueOf(0xFF4CAF50.toInt())
+        } else {
+            btnDefaultSms.text = "Set as Default SMS App"
+            btnDefaultSms.backgroundTintList = android.content.res.ColorStateList.valueOf(0xFFFF9800.toInt())
+        }
+
         if (running) {
-            tvStatus.text = "Monitoring active"
+            tvStatus.text = "Monitoring active" + if (!isDefault) " (limited)" else ""
             btnToggle.text = "Stop Monitoring"
             btnToggle.backgroundTintList = android.content.res.ColorStateList.valueOf(0xFFF44336.toInt())
             setDotColor(0xFF4CAF50.toInt())

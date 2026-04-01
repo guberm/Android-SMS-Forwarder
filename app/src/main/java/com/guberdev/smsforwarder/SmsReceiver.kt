@@ -8,7 +8,8 @@ import android.util.Log
 
 class SmsReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
-        if (intent.action == "android.provider.Telephony.SMS_RECEIVED") {
+        if (intent.action == "android.provider.Telephony.SMS_RECEIVED" ||
+            intent.action == "android.provider.Telephony.SMS_DELIVER") {
             val bundle = intent.extras
             if (bundle != null) {
                 val pdus = bundle["pdus"] as Array<*>?

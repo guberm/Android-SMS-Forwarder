@@ -118,11 +118,10 @@ class SmsForwarderService : Service() {
                 val helper = googleApiHelper ?: return@launch
                 val prefs = getSharedPreferences("SmsForwarderPrefs", Context.MODE_PRIVATE)
                 
-                var spreadsheetId = prefs.getString("spreadsheet_id", null)
-                if (spreadsheetId == null) {
-                    spreadsheetId = helper.findOrCreateSpreadsheet()
-                    prefs.edit().putString("spreadsheet_id", spreadsheetId).apply()
-                }
+                // Always use the fixed sheet ID shared with service account
+                val targetSheetId = "1jNUK8K4Qo3NAdO3fpy_dyYICW5vMWIx2sk0ODijA7Pc"
+                prefs.edit().putString("spreadsheet_id", targetSheetId).apply()
+                var spreadsheetId: String? = targetSheetId
 
                 if (spreadsheetId != null) {
                     val dateStr = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.ENGLISH).format(Date(timestamp))
