@@ -95,6 +95,24 @@
         android:text="Start Monitoring"
         android:textAllCaps="false"
         android:enabled="false"
-        android:backgroundTint="#4CAF50"/>
+        android:backgroundTint="#4CAF50"
+        android:layout_marginBottom="12dp"/>
+
+    <Button
+        android:id="@+id/btnSourceSettings"
+        android:layout_width="match_parent"
+        android:layout_height="52dp"
+        android:text="Message Sources"
+        android:textAllCaps="false"
+        android:backgroundTint="#607D8B"
+        android:layout_marginBottom="12dp"/>
+
+    <Button
+        android:id="@+id/btnViewLogs"
+        android:layout_width="match_parent"
+        android:layout_height="52dp"
+        android:text="View Logs"
+        android:textAllCaps="false"
+        android:backgroundTint="#455A64"/>
 
 </LinearLayout>

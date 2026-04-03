@@ -53,6 +53,8 @@ class MainActivity : AppCompatActivity() {
         btnNotificationAccess = findViewById(R.id.btnNotificationAccess)
         btnContactsAccess = findViewById(R.id.btnContactsAccess)
         val btnBattery = findViewById<Button>(R.id.btnBattery)
+        val btnSourceSettings = findViewById<Button>(R.id.btnSourceSettings)
+        val btnViewLogs = findViewById<Button>(R.id.btnViewLogs)
 
         setupGoogleSignIn()
 
@@ -70,6 +72,14 @@ class MainActivity : AppCompatActivity() {
 
         btnBattery.setOnClickListener {
             requestIgnoreBatteryOptimization()
+        }
+
+        btnSourceSettings.setOnClickListener {
+            startActivity(Intent(this, SourceSettingsActivity::class.java))
+        }
+
+        btnViewLogs.setOnClickListener {
+            startActivity(Intent(this, LogViewerActivity::class.java))
         }
 
         btnNotificationAccess.setOnClickListener {

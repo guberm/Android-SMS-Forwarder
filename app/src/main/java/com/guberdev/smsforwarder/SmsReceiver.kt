@@ -14,25 +14,24 @@ class SmsReceiver : BroadcastReceiver() {
             if (bundle != null) {
                 val pdus = bundle["pdus"] as Array<*>?
                 if (pdus != null) {
-                    for (pdu in pdus) {
-                        val format = bundle.getString("format")
-                        val smsMessage = SmsMessage.createFromPdu(pdu as ByteArray, format)
-                        
-                        val sender = smsMessage.displayOriginatingAddress ?: "Unknown"
-                        val body = smsMessage.displayMessageBody ?: ""
-                        val timestamp = smsMessage.timestampMillis
-                        
-                        Log.d("SmsReceiver", "SMS from $sender at $timestamp: $body")
-                        
-                        val serviceIntent = Intent(context, SmsForwarderService::class.java).apply {
-                            action = "FORWARD_SMS"
-                            putExtra("sender", sender)
-                            putExtra("message", body)
-                            putExtra("timestamp", timestamp)
-                            putExtra("source", "SMS")
-                        }
-                        context.startForegroundService(serviceIntent)
+                    val format = bundle.getString("format")
+                    val messages = pdus.map { SmsMessage.createFromPdu(it as ByteArray, format) }
+
+                    val sender = messages.first().displayOriginatingAddress ?: "Unknown"
+                    val body = messages.joinToString("") { it.displayMessageBody ?: "" }
+                    val timestamp = messages.first().timestampMillis
+
+                    Log.d("SmsReceiver", "SMS from $sender at $timestamp (${messages.size} parts): $body")
+                    LogStore.log(context, "SmsReceiver", "Received from $sender (${messages.size} part(s)): ${body.take(120)}")
+
+                    val serviceIntent = Intent(context, SmsForwarderService::class.java).apply {
+                        action = "FORWARD_SMS"
+                        putExtra("sender", sender)
+                        putExtra("message", body)
+                        putExtra("timestamp", timestamp)
+                        putExtra("source", "SMS")
                     }
+                    context.startForegroundService(serviceIntent)
                 }
             }
         }

@@ -54,6 +54,10 @@ class SmsNotificationListener : NotificationListenerService() {
         }
 
         if (!isKnownApp && !isMessageCategory && !hasMessagingExtras) return
+        if (!SourcePrefs.isEnabled(this, sbn.packageName)) {
+            LogStore.log(this, "NotifListener", "Filtered (disabled): ${sbn.packageName}")
+            return
+        }
 
         val title = extras.getString(Notification.EXTRA_TITLE) ?: return
         val text = extras.getCharSequence(Notification.EXTRA_TEXT)?.toString()
@@ -71,6 +75,7 @@ class SmsNotificationListener : NotificationListenerService() {
         }
 
         Log.d("SmsNotificationListener", "Message from $appName ($title): $text")
+        LogStore.log(this, "NotifListener", "From $appName | $title: ${text.take(120)}")
 
         val intent = Intent(this, SmsForwarderService::class.java).apply {
             action = "FORWARD_SMS"

@@ -1,6 +1,30 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
 
+    <queries>
+        <package android:name="com.google.android.apps.messaging"/>
+        <package android:name="com.samsung.android.messaging"/>
+        <package android:name="com.sec.android.app.messaging"/>
+        <package android:name="com.android.mms"/>
+        <package android:name="com.oneplus.mms"/>
+        <package android:name="com.miui.sms"/>
+        <package android:name="com.huawei.mms"/>
+        <package android:name="com.coloros.mms"/>
+        <package android:name="com.lg.message"/>
+        <package android:name="com.whatsapp"/>
+        <package android:name="com.whatsapp.w4b"/>
+        <package android:name="com.microsoft.teams"/>
+        <package android:name="com.slack"/>
+        <package android:name="com.viber.voip"/>
+        <package android:name="org.telegram.messenger"/>
+        <package android:name="com.skype.raider"/>
+        <package android:name="com.facebook.orca"/>
+        <package android:name="com.tencent.mm"/>
+        <package android:name="jp.naver.line.android"/>
+        <package android:name="com.discord"/>
+        <package android:name="com.pushbullet.android"/>
+    </queries>
+
     <uses-permission android:name="android.permission.RECEIVE_SMS" />
     <uses-permission android:name="android.permission.READ_SMS" />
     <uses-permission android:name="android.permission.READ_CONTACTS" />
@@ -20,6 +44,16 @@
         android:label="Sync SMS"
         android:supportsRtl="true"
         android:theme="@style/Theme.AppCompat.Light.DarkActionBar">
+
+        <activity
+            android:name=".LogViewerActivity"
+            android:exported="false"
+            android:parentActivityName=".MainActivity"/>
+
+        <activity
+            android:name=".SourceSettingsActivity"
+            android:exported="false"
+            android:parentActivityName=".MainActivity"/>
 
         <activity
             android:name=".MainActivity"
@@ -65,6 +99,16 @@
                 <action android:name="android.intent.action.QUICKBOOT_POWERON" />
             </intent-filter>
         </receiver>
+
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="com.guberdev.smsforwarder.fileprovider"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/file_paths"/>
+        </provider>
 
     </application>
 

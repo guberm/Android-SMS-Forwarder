@@ -35,9 +35,6 @@ class SmsForwarderService : Service() {
     private var smsObserver: ContentObserver? = null
     private var lastKnownSmsId: Long = -1L
 
-    // Dedup cache: key = "sender|bodyHash", value = timestamp
-    private val recentMessages = mutableMapOf<String, Long>()
-
     override fun onCreate() {
         super.onCreate()
         createNotificationChannel()
@@ -95,6 +92,7 @@ class SmsForwarderService : Service() {
                     continue
                 }
 
+                if (!SourcePrefs.isEnabled(this@SmsForwarderService, SourcePrefs.NATIVE_SMS)) continue
                 Log.d("SmsForwarder", "Observer: new SMS id=$id from=$sender")
                 processSms(sender, body, timestamp, "SMS")
             }
@@ -116,46 +114,39 @@ class SmsForwarderService : Service() {
             val timestamp = intent.getLongExtra("timestamp", System.currentTimeMillis())
             val source = intent.getStringExtra("source") ?: "SMS"
             if (message.isNotBlank()) {
-                processSms(sender, message, timestamp, source)
+                if (SourcePrefs.isEnabled(this, SourcePrefs.NATIVE_SMS)) {
+                    processSms(sender, message, timestamp, source)
+                } else {
+                    LogStore.log(this, "SmsForwarder", "Filtered: Native SMS disabled in settings")
+                }
             }
         }
 
         return START_STICKY
     }
 
-    // Content-only dedup: hash(message) -> timestamp (10s window)
-    private val contentCache = mutableMapOf<Int, Long>()
-    // Sender-specific dedup: sender|hash(message) -> timestamp (60s window)
-    private val senderCache = mutableMapOf<String, Long>()
+    private val dedupPrefs by lazy { getSharedPreferences("sms_dedup", Context.MODE_PRIVATE) }
+    private val DEDUP_WINDOW_MS = 15_000L
 
     private fun isDuplicate(sender: String, message: String): Boolean {
-        val normalizedMsg = message.trim()
-        val msgHash = normalizedMsg.take(100).hashCode()
+        val key = "$sender|${message.trim().take(200).hashCode()}"
         val now = System.currentTimeMillis()
 
-        // 1. Content-only check (10s): Catches same message from different sources (Receiver vs Listener vs Observer)
-        val lastContent = contentCache[msgHash]
-        if (lastContent != null && now - lastContent < 10_000) {
-            Log.d("SmsForwarder", "Dedup (Global): skipping duplicate message text within 10s")
+        val lastSeen = dedupPrefs.getLong(key, 0L)
+        if (lastSeen > 0 && now - lastSeen < DEDUP_WINDOW_MS) {
+            Log.d("SmsForwarder", "Dedup: skipping duplicate from $sender within ${DEDUP_WINDOW_MS / 1000}s")
+            LogStore.log(this, "Dedup", "Skipped duplicate from $sender within ${DEDUP_WINDOW_MS / 1000}s")
             return true
         }
 
-        // 2. Sender+Content check (60s): Catches retry/repeat messages from the same sender
-        val senderKey = "$sender|$msgHash"
-        val lastSender = senderCache[senderKey]
-        if (lastSender != null && now - lastSender < 60_000) {
-            Log.d("SmsForwarder", "Dedup (Sender): skipping duplicate from $sender within 60s")
-            return true
-        }
+        dedupPrefs.edit().putLong(key, now).apply()
 
-        // Update caches
-        contentCache[msgHash] = now
-        senderCache[senderKey] = now
+        // Prune stale entries older than 2x window
+        val staleThreshold = now - DEDUP_WINDOW_MS * 2
+        dedupPrefs.all.entries
+            .filter { it.value is Long && (it.value as Long) < staleThreshold }
+            .forEach { dedupPrefs.edit().remove(it.key).apply() }
 
-        // Cleanup stale entries
-        contentCache.entries.removeIf { now - it.value > 120_000 }
-        senderCache.entries.removeIf { now - it.value > 120_000 }
-        
         return false
     }
 
@@ -202,8 +193,10 @@ class SmsForwarderService : Service() {
                 helper.appendRow(TARGET_SHEET_ID, dateStr, resolvedSource, resolvedSender, message)
                 helper.sendEmailToSelf(resolvedSource, resolvedSender, dateStr, message)
                 Log.d("SmsForwarder", "Synced $resolvedSource from $resolvedSender")
+                LogStore.log(this@SmsForwarderService, "Sync", "OK | $resolvedSource | $resolvedSender | ${message.take(80)}")
             } catch (e: Exception) {
                 Log.e("SmsForwarder", "Failed to sync $resolvedSource from $resolvedSender: ${e.message}")
+                LogStore.e(this@SmsForwarderService, "Sync", "FAILED | $resolvedSource | $resolvedSender | ${e.message}")
             }
         }
     }
