@@ -11,6 +11,7 @@ class SmsNotificationListener : NotificationListenerService() {
 
     // Common messaging app package names
     private val MESSAGE_PACKAGES = setOf(
+        "com.guberdev.tgnotifier",               // Telegram Notifier
         "com.google.android.apps.messaging",    // Google Messages
         "com.samsung.android.messaging",         // Samsung Messages
         "com.sec.android.app.messaging",         // Samsung (older)

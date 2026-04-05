@@ -10,6 +10,7 @@ object SourcePrefs {
     const val NATIVE_SMS = "native_sms"
 
     val KNOWN_PACKAGES = listOf(
+        "com.guberdev.tgnotifier",
         "com.google.android.apps.messaging",
         "com.samsung.android.messaging",
         "com.sec.android.app.messaging",
