@@ -46,6 +46,19 @@ class LogViewerActivity : AppCompatActivity() {
             etFilter.setText("")
         }
 
+        // Quick filter chips
+        val chips = mapOf(
+            R.id.chipAll   to "",
+            R.id.chipMsg   to "MSG",
+            R.id.chipOk    to "OK",
+            R.id.chipSkip  to "SKIP",
+            R.id.chipErr   to "ERROR",
+            R.id.chipDedup to "Dedup"
+        )
+        chips.forEach { (id, keyword) ->
+            findViewById<Button>(id).setOnClickListener { etFilter.setText(keyword) }
+        }
+
         findViewById<Button>(R.id.btnShare).setOnClickListener { shareLog() }
         findViewById<Button>(R.id.btnClear).setOnClickListener { confirmClear() }
         findViewById<Button>(R.id.btnRefresh).setOnClickListener { loadLog() }

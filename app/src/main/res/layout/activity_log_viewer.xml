@@ -82,6 +82,31 @@
 
     </LinearLayout>
 
+    <!-- Quick filter chips -->
+    <HorizontalScrollView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="#FFFFFF"
+        android:scrollbars="none"
+        android:paddingStart="8dp"
+        android:paddingEnd="8dp"
+        android:paddingBottom="8dp">
+
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal">
+
+            <Button android:id="@+id/chipAll"   android:layout_width="wrap_content" android:layout_height="32dp" android:text="All"   android:textSize="12sp" android:textAllCaps="false" android:layout_marginEnd="6dp" style="?attr/materialButtonOutlinedStyle" />
+            <Button android:id="@+id/chipMsg"   android:layout_width="wrap_content" android:layout_height="32dp" android:text="MSG"   android:textSize="12sp" android:textAllCaps="false" android:layout_marginEnd="6dp" style="?attr/materialButtonOutlinedStyle" />
+            <Button android:id="@+id/chipOk"    android:layout_width="wrap_content" android:layout_height="32dp" android:text="OK"    android:textSize="12sp" android:textAllCaps="false" android:layout_marginEnd="6dp" style="?attr/materialButtonOutlinedStyle" />
+            <Button android:id="@+id/chipSkip"  android:layout_width="wrap_content" android:layout_height="32dp" android:text="SKIP"  android:textSize="12sp" android:textAllCaps="false" android:layout_marginEnd="6dp" style="?attr/materialButtonOutlinedStyle" />
+            <Button android:id="@+id/chipErr"   android:layout_width="wrap_content" android:layout_height="32dp" android:text="ERROR" android:textSize="12sp" android:textAllCaps="false" android:layout_marginEnd="6dp" style="?attr/materialButtonOutlinedStyle" />
+            <Button android:id="@+id/chipDedup" android:layout_width="wrap_content" android:layout_height="32dp" android:text="Dedup" android:textSize="12sp" android:textAllCaps="false" style="?attr/materialButtonOutlinedStyle" />
+
+        </LinearLayout>
+    </HorizontalScrollView>
+
     <View
         android:layout_width="match_parent"
         android:layout_height="1dp"
