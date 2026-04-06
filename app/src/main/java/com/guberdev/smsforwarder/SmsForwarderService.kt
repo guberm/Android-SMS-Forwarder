@@ -92,7 +92,10 @@ class SmsForwarderService : Service() {
                     continue
                 }
 
-                if (!SourcePrefs.isEnabled(this@SmsForwarderService, SourcePrefs.NATIVE_SMS)) continue
+                if (!SourcePrefs.isEnabled(this@SmsForwarderService, SourcePrefs.NATIVE_SMS)) {
+                    LogStore.log(this@SmsForwarderService, "SmsForwarder", "SKIP: Native SMS disabled | from=$sender")
+                    continue
+                }
                 Log.d("SmsForwarder", "Observer: new SMS id=$id from=$sender")
                 processSms(sender, body, timestamp, "SMS")
             }
@@ -180,6 +183,7 @@ class SmsForwarderService : Service() {
         val contactName = if (sender.any { it.isDigit() }) getContactName(sender) else null
         val resolvedSender = if (contactName != null) "$contactName ($sender)" else sender
         val resolvedSource = if (source == "SMS") getDefaultSmsAppName() else source
+        LogStore.log(this, "SmsForwarder", "MSG: $resolvedSource | $resolvedSender | ${message.take(80)}")
         if (isDuplicate(resolvedSender, message)) return
 
         scope.launch {

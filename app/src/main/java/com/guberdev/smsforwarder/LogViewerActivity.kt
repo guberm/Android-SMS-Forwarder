@@ -2,7 +2,11 @@ package com.guberdev.smsforwarder
 
 import android.content.Intent
 import android.os.Bundle
+import android.text.Editable
+import android.text.TextWatcher
+import android.view.View
 import android.widget.Button
+import android.widget.EditText
 import android.widget.ScrollView
 import android.widget.TextView
 import android.widget.Toast
@@ -14,6 +18,9 @@ class LogViewerActivity : AppCompatActivity() {
 
     private lateinit var tvLog: TextView
     private lateinit var scrollView: ScrollView
+    private lateinit var etFilter: EditText
+    private lateinit var btnClearFilter: Button
+    private var fullLogText: String = ""
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -23,6 +30,21 @@ class LogViewerActivity : AppCompatActivity() {
 
         tvLog = findViewById(R.id.tvLog)
         scrollView = findViewById(R.id.scrollView)
+        etFilter = findViewById(R.id.etFilter)
+        btnClearFilter = findViewById(R.id.btnClearFilter)
+
+        etFilter.addTextChangedListener(object : TextWatcher {
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
+            override fun afterTextChanged(s: Editable?) {
+                btnClearFilter.visibility = if (s.isNullOrEmpty()) View.GONE else View.VISIBLE
+                applyFilter()
+            }
+        })
+
+        btnClearFilter.setOnClickListener {
+            etFilter.setText("")
+        }
 
         findViewById<Button>(R.id.btnShare).setOnClickListener { shareLog() }
         findViewById<Button>(R.id.btnClear).setOnClickListener { confirmClear() }
@@ -38,8 +60,20 @@ class LogViewerActivity : AppCompatActivity() {
 
     private fun loadLog() {
         val file = LogStore.getLogFile(this)
-        val text = if (file.exists() && file.length() > 0) file.readText() else "(no logs yet)"
-        tvLog.text = text
+        fullLogText = if (file.exists() && file.length() > 0) file.readText() else "(no logs yet)"
+        applyFilter()
+    }
+
+    private fun applyFilter() {
+        val query = etFilter.text.toString().trim()
+        val displayed = if (query.isEmpty()) {
+            fullLogText
+        } else {
+            fullLogText.lines()
+                .filter { it.contains(query, ignoreCase = true) }
+                .joinToString("\n")
+        }
+        tvLog.text = displayed
         scrollView.post { scrollView.fullScroll(ScrollView.FOCUS_DOWN) }
     }
 
