@@ -22,6 +22,7 @@ import com.google.api.services.gmail.GmailScopes
 import com.google.api.services.sheets.v4.SheetsScopes
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.*
@@ -187,20 +188,37 @@ class SmsForwarderService : Service() {
         if (isDuplicate(resolvedSender, message)) return
 
         scope.launch {
-            try {
-                if (googleApiHelper == null) {
-                    initApiHelper()
-                }
+            syncWithRetry(resolvedSender, message, timestamp, resolvedSource)
+        }
+    }
 
-                val helper = googleApiHelper ?: return@launch
+    private suspend fun syncWithRetry(
+        resolvedSender: String, message: String, timestamp: Long, resolvedSource: String,
+        maxAttempts: Int = 5
+    ) {
+        var attempt = 0
+        var delayMs = 5_000L
+        while (attempt < maxAttempts) {
+            try {
+                if (googleApiHelper == null) initApiHelper()
+                val helper = googleApiHelper ?: throw Exception("Google account not available")
                 val dateStr = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.ENGLISH).format(Date(timestamp))
                 helper.appendRow(TARGET_SHEET_ID, dateStr, resolvedSource, resolvedSender, message)
                 helper.sendEmailToSelf(resolvedSource, resolvedSender, dateStr, message)
                 Log.d("SmsForwarder", "Synced $resolvedSource from $resolvedSender")
                 LogStore.log(this@SmsForwarderService, "Sync", "OK | $resolvedSource | $resolvedSender | ${message.take(80)}")
+                return
             } catch (e: Exception) {
-                Log.e("SmsForwarder", "Failed to sync $resolvedSource from $resolvedSender: ${e.message}")
-                LogStore.e(this@SmsForwarderService, "Sync", "FAILED | $resolvedSource | $resolvedSender | ${e.message}")
+                attempt++
+                if (attempt >= maxAttempts) {
+                    Log.e("SmsForwarder", "Failed to sync $resolvedSource from $resolvedSender: ${e.message}")
+                    LogStore.e(this@SmsForwarderService, "Sync", "FAILED | $resolvedSource | $resolvedSender | ${e.message}")
+                    return
+                }
+                Log.w("SmsForwarder", "Sync attempt $attempt failed, retrying in ${delayMs / 1000}s: ${e.message}")
+                LogStore.log(this@SmsForwarderService, "Sync", "RETRY $attempt/$maxAttempts in ${delayMs / 1000}s | ${e.message?.take(60)}")
+                delay(delayMs)
+                delayMs = minOf(delayMs * 2, 60_000L)
             }
         }
     }
