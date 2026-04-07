@@ -203,10 +203,13 @@ class SmsForwarderService : Service() {
                 if (googleApiHelper == null) initApiHelper()
                 val helper = googleApiHelper ?: throw Exception("Google account not available")
                 val dateStr = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.ENGLISH).format(Date(timestamp))
+                LogStore.log(this@SmsForwarderService, "Sync", "Sheets: sending | $resolvedSource | $resolvedSender")
                 helper.appendRow(TARGET_SHEET_ID, dateStr, resolvedSource, resolvedSender, message)
+                LogStore.log(this@SmsForwarderService, "Sync", "Sheets: OK | $resolvedSource | $resolvedSender")
+                LogStore.log(this@SmsForwarderService, "Sync", "Email: sending | $resolvedSource | $resolvedSender")
                 helper.sendEmailToSelf(resolvedSource, resolvedSender, dateStr, message)
+                LogStore.log(this@SmsForwarderService, "Sync", "Email: OK | $resolvedSource | $resolvedSender")
                 Log.d("SmsForwarder", "Synced $resolvedSource from $resolvedSender")
-                LogStore.log(this@SmsForwarderService, "Sync", "OK | $resolvedSource | $resolvedSender | ${message.take(80)}")
                 return
             } catch (e: Exception) {
                 attempt++
