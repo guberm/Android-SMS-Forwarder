@@ -84,6 +84,7 @@ class SmsNotificationListener : NotificationListenerService() {
             putExtra("message", text)
             putExtra("timestamp", sbn.postTime)
             putExtra("source", appName)
+            putExtra("packageName", sbn.packageName)
         }
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             startForegroundService(intent)

@@ -117,11 +117,18 @@ class SmsForwarderService : Service() {
             val message = intent.getStringExtra("message") ?: ""
             val timestamp = intent.getLongExtra("timestamp", System.currentTimeMillis())
             val source = intent.getStringExtra("source") ?: "SMS"
+            val packageName = intent.getStringExtra("packageName") ?: ""
             if (message.isNotBlank()) {
-                if (SourcePrefs.isEnabled(this, SourcePrefs.NATIVE_SMS)) {
+                // If packageName is set, check per-app preference; otherwise it's native SMS
+                val enabled = if (packageName.isNotEmpty()) {
+                    SourcePrefs.isEnabled(this, packageName)
+                } else {
+                    SourcePrefs.isEnabled(this, SourcePrefs.NATIVE_SMS)
+                }
+                if (enabled) {
                     processSms(sender, message, timestamp, source)
                 } else {
-                    LogStore.log(this, "SmsForwarder", "Filtered: Native SMS disabled in settings")
+                    LogStore.log(this, "SmsForwarder", "Filtered (disabled): $source")
                 }
             }
         }
