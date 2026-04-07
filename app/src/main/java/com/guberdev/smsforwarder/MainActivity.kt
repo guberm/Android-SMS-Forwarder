@@ -59,7 +59,15 @@ class MainActivity : AppCompatActivity() {
         setupGoogleSignIn()
 
         btnSignIn.setOnClickListener {
-            startActivityForResult(googleSignInClient.signInIntent, RC_SIGN_IN)
+            val alreadySignedIn = GoogleSignIn.getLastSignedInAccount(this) != null
+            if (alreadySignedIn) {
+                // Sign out first so the account picker actually shows
+                googleSignInClient.signOut().addOnCompleteListener {
+                    startActivityForResult(googleSignInClient.signInIntent, RC_SIGN_IN)
+                }
+            } else {
+                startActivityForResult(googleSignInClient.signInIntent, RC_SIGN_IN)
+            }
         }
 
         btnToggle.setOnClickListener {
