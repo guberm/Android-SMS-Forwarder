@@ -100,7 +100,7 @@ class LogViewerActivity : AppCompatActivity() {
         val intent = Intent(Intent.ACTION_SEND).apply {
             type = "text/plain"
             putExtra(Intent.EXTRA_STREAM, uri)
-            putExtra(Intent.EXTRA_SUBJECT, "SMS Sync logs")
+            putExtra(Intent.EXTRA_SUBJECT, "Notifications Forwarder logs")
             addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
         }
         startActivity(Intent.createChooser(intent, "Share logs"))
