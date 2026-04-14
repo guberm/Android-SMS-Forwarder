@@ -35,6 +35,27 @@ class SmsNotificationListener : NotificationListenerService() {
         "com.pushbullet.android"                 // Pushbullet
     )
 
+    // Titles that are WhatsApp/messaging system notifications, not real messages
+    private val SYSTEM_TITLE_PREFIXES = listOf(
+        "Backup",
+        "Restoring",
+        "Downloading media",
+        "Uploading media",
+        "Connecting…",
+        "Checking for new messages"
+    )
+
+    private val SYSTEM_TITLE_EXACT = setOf(
+        "Restoring media",
+        "Backed up",
+        "End-to-end encrypted backup"
+    )
+
+    private fun isSystemNotification(title: String): Boolean {
+        if (title in SYSTEM_TITLE_EXACT) return true
+        return SYSTEM_TITLE_PREFIXES.any { title.startsWith(it) }
+    }
+
     override fun onNotificationPosted(sbn: StatusBarNotification) {
         val extras = sbn.notification.extras
         
@@ -73,6 +94,11 @@ class SmsNotificationListener : NotificationListenerService() {
             pm.getApplicationLabel(ai).toString()
         } catch (e: Exception) {
             "Notification"
+        }
+
+        if (isSystemNotification(title)) {
+            LogStore.log(this, "NotifListener", "Filtered (system): $appName | $title")
+            return
         }
 
         Log.d("SmsNotificationListener", "Message from $appName ($title): $text")

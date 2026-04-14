@@ -13,5 +13,5 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "Sync SMS"
+rootProject.name = "Android Notifications Forwarder"
 include(":app")

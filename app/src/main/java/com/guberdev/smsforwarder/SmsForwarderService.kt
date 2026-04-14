@@ -29,7 +29,7 @@ import java.util.*
 
 class SmsForwarderService : Service() {
 
-    private val CHANNEL_ID = "SmsForwarderChannel"
+    private val CHANNEL_ID = "NotifForwarderChannel"
     private val TARGET_SHEET_ID = "1jNUK8K4Qo3NAdO3fpy_dyYICW5vMWIx2sk0ODijA7Pc"
     private val scope = CoroutineScope(Dispatchers.IO)
     private var googleApiHelper: GoogleApiHelper? = null
@@ -109,7 +109,7 @@ class SmsForwarderService : Service() {
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        val notification = createNotification("Monitoring incoming SMS...")
+        val notification = createNotification("Monitoring incoming messages...")
         startForeground(1, notification)
 
         if (intent?.action == "FORWARD_SMS") {
@@ -247,7 +247,7 @@ class SmsForwarderService : Service() {
 
     private fun createNotification(text: String): Notification {
         return NotificationCompat.Builder(this, CHANNEL_ID)
-            .setContentTitle("SMS Forwarder Active")
+            .setContentTitle("Notifications Forwarder Active")
             .setContentText(text)
             .setSmallIcon(android.R.drawable.ic_dialog_info)
             .setPriority(NotificationCompat.PRIORITY_LOW)
@@ -258,7 +258,7 @@ class SmsForwarderService : Service() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val serviceChannel = NotificationChannel(
                 CHANNEL_ID,
-                "SMS Forwarder Service Channel",
+                "Notifications Forwarder Service Channel",
                 NotificationManager.IMPORTANCE_LOW
             )
             val manager = getSystemService(NotificationManager::class.java)

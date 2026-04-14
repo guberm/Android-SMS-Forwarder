@@ -11,8 +11,8 @@ android {
         applicationId = "com.guberdev.smsforwarder"
         minSdk = 24
         targetSdk = 34
-        versionCode = 10
-        versionName = "1.7.2"
+        versionCode = 19
+        versionName = "1.9.0"
     }
 
     buildTypes {

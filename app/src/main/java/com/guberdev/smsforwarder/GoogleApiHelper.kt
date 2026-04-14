@@ -21,7 +21,7 @@ class GoogleApiHelper(private val context: Context, private val credential: Goog
 
     private val transport = NetHttpTransport()
     private val jsonFactory = GsonFactory.getDefaultInstance()
-    private val appName = "SMS Forwarder"
+    private val appName = "Notifications Forwarder"
 
     private val driveService: Drive = Drive.Builder(transport, jsonFactory, credential)
         .setApplicationName(appName)
@@ -36,7 +36,7 @@ class GoogleApiHelper(private val context: Context, private val credential: Goog
         .build()
 
     fun findOrCreateSpreadsheet(): String? {
-        val query = "name = 'SMS Forwarder Logs' and mimeType = 'application/vnd.google-apps.spreadsheet' and trashed = false"
+        val query = "name = 'Notifications Forwarder Logs' and mimeType = 'application/vnd.google-apps.spreadsheet' and trashed = false"
         val result = driveService.files().list().setQ(query).setSpaces("drive").execute()
         val files = result.files
 
@@ -45,7 +45,7 @@ class GoogleApiHelper(private val context: Context, private val credential: Goog
         }
 
         val metadata = File().apply {
-            name = "SMS Forwarder Logs"
+            name = "Notifications Forwarder Logs"
             mimeType = "application/vnd.google-apps.spreadsheet"
         }
         val newFile = driveService.files().create(metadata).setFields("id").execute()
@@ -100,7 +100,7 @@ class GoogleApiHelper(private val context: Context, private val credential: Goog
                     </div>
                 </div>
                 <div style="background-color: #f8f9fa; padding: 16px; text-align: center; color: #70757a; font-size: 12px; border-top: 1px solid #f1f3f4;">
-                    Automated Secure Forwarding &bull; Sync SMS
+                    Automated Secure Forwarding &bull; Android Notifications Forwarder
                 </div>
             </div>
         """.trimIndent()
